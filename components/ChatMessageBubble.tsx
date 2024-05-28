@@ -1,38 +1,58 @@
 import type { Message } from "ai/react";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "./ui/alert-dialog";
+import Link from "next/link";
+import Markdown from 'react-markdown'
+import { cn } from "@/lib/utils";
 
-export function ChatMessageBubble(props: { message: Message, aiEmoji?: string, sources: any[] }) {
+export function ChatMessageBubble(props: {
+  message: Message;
+  aiEmoji?: string;
+  sources: any[];
+}) {
   const colorClassName =
     props.message.role === "user" ? "bg-sky-600" : "bg-slate-50 text-black";
   const alignmentClassName =
     props.message.role === "user" ? "ml-auto" : "mr-auto";
-  const prefix = props.message.role === "user" ? "🧑" : props.aiEmoji;
   return (
     <div
-      className={`${alignmentClassName} ${colorClassName} rounded px-4 py-2 max-w-[80%] mb-8 flex`}
+      className={`${alignmentClassName} ${colorClassName} rounded p-4 w-fit max-w-[80%] mb-8 flex`}
     >
-      <div className="mr-2">
-        {prefix}
-      </div>
-      <div className="whitespace-pre-wrap flex flex-col">
-        <span>{props.message.content}</span>
-        {props.sources && props.sources.length ? <>
-          <code className="mt-4 mr-auto bg-slate-600 px-2 py-1 rounded">
-            <h2>
-              🔍 Sources:
-            </h2>
-          </code>
-          <code className="mt-1 mr-2 bg-slate-600 px-2 py-1 rounded text-xs">
-            {props.sources?.map((source, i) => (
-              <div className="mt-2" key={"source:" + i}>
-                {i + 1}. &quot;{source.pageContent}&quot;{
-                  source.metadata?.loc?.lines !== undefined
-                    ? <div><br/>Lines {source.metadata?.loc?.lines?.from} to {source.metadata?.loc?.lines?.to}</div>
-                    : ""
-                  }
-              </div>
-            ))}
-          </code>
-        </> : ""}
+      <div className="flex flex-col">
+        <div className={cn(props.message.role ==="assistant" && "prose prose-slate")}><Markdown>{props.message.content}</Markdown></div>
+        {props.sources && props.sources.length && (
+          <div className="mt-6">
+            <AlertDialog>
+              <AlertDialogTrigger>
+              🔗 Show Sources
+              </AlertDialogTrigger>
+              <AlertDialogContent className="max-w-5xl overflow-auto max-h-screen">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      The following sources are considered in this response
+                    </AlertDialogTitle>
+                  </AlertDialogHeader>
+                  {props.sources?.map((source, i) => (
+                    <div className="mt-2" key={"source:" + i}>
+                      <Link target="_blank" href={source.metadata.reference} >
+                      <span className="text-md text-slate-300">{source.pageContent}</span>
+                      </Link>
+                    </div>
+                  ))}
+                  <AlertDialogFooter>
+                    <AlertDialogCancel className="w-full">Close</AlertDialogCancel>
+                  </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        )}
       </div>
     </div>
   );

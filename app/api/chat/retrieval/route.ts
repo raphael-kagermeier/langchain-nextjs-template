@@ -1,17 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Message as VercelChatMessage, StreamingTextResponse } from "ai";
-
-import { createClient } from "@supabase/supabase-js";
-
 import { ChatOpenAI, OpenAIEmbeddings } from "@langchain/openai";
 import { PromptTemplate } from "@langchain/core/prompts";
-import { SupabaseVectorStore } from "@langchain/community/vectorstores/supabase";
 import { Document } from "@langchain/core/documents";
 import { RunnableSequence } from "@langchain/core/runnables";
 import {
   BytesOutputParser,
   StringOutputParser,
 } from "@langchain/core/output_parsers";
+import { NeonPostgres } from "@langchain/community/vectorstores/neon";
+import { link } from "fs";
 
 export const runtime = "edge";
 
@@ -33,7 +31,7 @@ const formatVercelMessages = (chatHistory: VercelChatMessage[]) => {
   return formattedDialogueTurns.join("\n");
 };
 
-const CONDENSE_QUESTION_TEMPLATE = `Given the following conversation and a follow up question, rephrase the follow up question to be a standalone question, in its original language.
+const CONDENSE_QUESTION_TEMPLATE = `Given the following conversation and a follow up question, rephrase the follow up question to be a standalone question, in english.
 
 <chat_history>
   {chat_history}
@@ -45,10 +43,9 @@ const condenseQuestionPrompt = PromptTemplate.fromTemplate(
   CONDENSE_QUESTION_TEMPLATE,
 );
 
-const ANSWER_TEMPLATE = `You are an energetic talking puppy named Dana, and must answer all questions like a happy, talking dog would.
-Use lots of puns!
+const ANSWER_TEMPLATE = `You are a research assistant, helping users to find information about the google's ranking algorithm.
 
-Answer the question based only on the following context and chat history:
+You only answer the question based only on the following context and chat history:
 <context>
   {context}
 </context>
@@ -61,12 +58,6 @@ Question: {question}
 `;
 const answerPrompt = PromptTemplate.fromTemplate(ANSWER_TEMPLATE);
 
-/**
- * This handler initializes and calls a retrieval chain. It composes the chain using
- * LangChain Expression Language. See the docs for more information:
- *
- * https://js.langchain.com/docs/guides/expression_language/cookbook#conversational-retrieval-chain
- */
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -74,30 +65,35 @@ export async function POST(req: NextRequest) {
     const previousMessages = messages.slice(0, -1);
     const currentMessageContent = messages[messages.length - 1].content;
 
+    const apiKey = body.apiKey as string;
+
+    if(!apiKey) {
+      throw new Error("API key is required");
+    }
+
     const model = new ChatOpenAI({
-      modelName: "gpt-3.5-turbo-1106",
-      temperature: 0.2,
+      modelName: "gpt-4o",
+      temperature: 0,
+      openAIApiKey: apiKey,
     });
 
-    const client = createClient(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_PRIVATE_KEY!,
-    );
-    const vectorstore = new SupabaseVectorStore(new OpenAIEmbeddings(), {
-      client,
-      tableName: "documents",
-      queryName: "match_documents",
+    const embeddings = new OpenAIEmbeddings({
+      apiKey,
+      dimensions: 1536,
+      model: "text-embedding-3-small",
     });
 
-    /**
-     * We use LangChain Expression Language to compose two chains.
-     * To learn more, see the guide here:
-     *
-     * https://js.langchain.com/docs/guides/expression_language/cookbook
-     *
-     * You can also use the "createRetrievalChain" method with a
-     * "historyAwareRetriever" to get something prebaked.
-     */
+    const vectorStore = await NeonPostgres.initialize(embeddings, {
+      connectionString: process.env.DATABASE_URL as string,
+      tableName: "chunk",
+      columns: {
+        idColumnName: "id",
+        vectorColumnName: "vector",
+        contentColumnName: "content",
+        metadataColumnName: "metadata",
+      },
+    });
+
     const standaloneQuestionChain = RunnableSequence.from([
       condenseQuestionPrompt,
       model,
@@ -109,7 +105,8 @@ export async function POST(req: NextRequest) {
       resolveWithDocuments = resolve;
     });
 
-    const retriever = vectorstore.asRetriever({
+    const retriever = vectorStore.asRetriever({
+      k: 50,
       callbacks: [
         {
           handleRetrieverEnd(documents) {
@@ -153,7 +150,7 @@ export async function POST(req: NextRequest) {
       JSON.stringify(
         documents.map((doc) => {
           return {
-            pageContent: doc.pageContent.slice(0, 50) + "...",
+            pageContent: doc.metadata.title,
             metadata: doc.metadata,
           };
         }),
