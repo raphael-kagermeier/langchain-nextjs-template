@@ -8,7 +8,7 @@ export default function AgentsPage() {
         Google Search Algorithm Research Assistant
       </h1>
       <p className="text-lg">
-        Aks questions about Google's search algorithm and how it works to get
+        Aks questions about Google&apos;s search algorithm and how it works to get
         answers based on the leaked{" "}
         <Link
           className="text-slate-200 underline"
@@ -33,7 +33,7 @@ export default function AgentsPage() {
             accurate for a wide range of user queries?
           </li>
           <li>
-            In what ways does Google handle complex questions that don't have
+            In what ways does Google handle complex questions that don&apos;t have
             straightforward answers?
           </li>
           <li>
@@ -41,7 +41,7 @@ export default function AgentsPage() {
             search results?
           </li>
           <li>
-            What role does natural language understanding play in Google's
+            What role does natural language understanding play in Google&apos;s
             ability to interpret and respond to user questions?
           </li>
           <li>
