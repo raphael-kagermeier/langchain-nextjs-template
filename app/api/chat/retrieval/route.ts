@@ -94,6 +94,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    // @ts-ignore
     const standaloneQuestionChain = RunnableSequence.from([
       condenseQuestionPrompt,
       model,

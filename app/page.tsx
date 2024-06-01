@@ -8,8 +8,8 @@ export default function AgentsPage() {
         Google Search Algorithm Research Assistant
       </h1>
       <p className="text-lg">
-        Aks questions about Google&apos;s search algorithm and how it works to get
-        answers based on the leaked{" "}
+        Aks questions about Google&apos;s search algorithm and how it works to
+        get answers based on the leaked{" "}
         <Link
           className="text-slate-200 underline"
           target="blank"
@@ -33,8 +33,8 @@ export default function AgentsPage() {
             accurate for a wide range of user queries?
           </li>
           <li>
-            In what ways does Google handle complex questions that don&apos;t have
-            straightforward answers?
+            In what ways does Google handle complex questions that don&apos;t
+            have straightforward answers?
           </li>
           <li>
             How does Google use past user queries to improve the accuracy of its
@@ -57,7 +57,7 @@ export default function AgentsPage() {
       endpoint="api/chat/retrieval"
       emptyStateComponent={InfoCard}
       placeholder={
-        'How does Google balance the need for personalized search results with user privacy concerns?'
+        "How does Google balance the need for personalized search results with user privacy concerns?"
       }
       emoji="🤖"
       titleText="Google Search Algorithm Research Assistant"
